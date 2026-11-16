@@ -2,6 +2,7 @@
   "name": "AstraCore AI - Carta Natal",
   "short_name": "AstraCore AI",
   "description": "Carta natal de alta precisión con motor astronómico y consultor IA",
+  "id": "./index.html",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -13,13 +14,13 @@
       "src": "input_file_1.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "input_file_2.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
