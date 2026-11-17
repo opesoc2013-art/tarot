@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstraCore AI</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#07071a">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+  :root{--bg:#07071a;--panel:#0e0e2a;--panel2:#15153a;--gold:#d4af37;--indigo:#6a5acd;--txt:#e8e6f5;--mut:#9a98b8;--blue:#4fa3ff;--green:#4cd69a;--red:#ff5c5c;--orange:#ff9c3d}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Georgia,"Segoe UI",serif;background:radial-gradient(ellipse at top,#1a1446 0%,var(--bg) 60%);color:var(--txt);min-height:100vh}
+  header{padding:18px 28px;border-bottom:1px solid #2a2a5a;display:flex;align-items:baseline;gap:14px}
+  header h1{margin:0;font-size:26px;color:var(--gold);letter-spacing:2px}
+  header span{color:var(--mut);font-size:14px}
+  main{display:grid;grid-template-columns:340px 1fr;gap:20px;padding:20px;max-width:1400px;margin:auto}
+  @media(max-width:950px){main{grid-template-columns:1fr}}
+  .card{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid #2b2b66;border-radius:14px;padding:18px}
+  h2{color:var(--gold);font-size:18px;margin:0 0 12px}
+  label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px;border-radius:8px;border:1px solid #3a3a7a;background:#0a0a22;color:var(--txt);font-size:14px}
+  .row{display:flex;gap:8px;align-items:center}
+  .row input[type=checkbox]{width:auto}
+  button{background:linear-gradient(90deg,var(--gold),#b8912a);color:#1a1200;border:0;padding:10px 14px;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:12px}
+  button.sec{background:var(--indigo);color:#fff}
+  button:disabled{opacity:.5;cursor:wait}
+  .note{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.4}
+  .warn{background:#3a2a10;border:1px solid #7a5a20;color:#ffd58a;padding:10px;border-radius:8px;font-size:13px;margin:10px 0}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tab{background:#1b1b44;color:var(--mut);margin:0;padding:8px 14px;border:1px solid #33336e}
+  .tab.on{background:var(--gold);color:#1a1200}
+  .pane{display:none}.pane.on{display:block}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:7px 6px;border-bottom:1px solid #26265a;text-align:left}
+  th{color:var(--gold);font-weight:normal}
+  .wheelwrap{display:flex;justify-content:center}
+  svg text{font-family:"Segoe UI Symbol","Noto Sans Symbols",sans-serif}
+  .chat{height:380px;overflow:auto;background:#080820;border-radius:10px;padding:12px;border:1px solid #26265a}
+  .msg{margin:8px 0;padding:9px 12px;border-radius:10px;line-height:1.5;white-space:pre-wrap;font-size:14px}
+  .msg.u{background:#263070;margin-left:15%}
+  .msg.a{background:#1d1d3f;margin-right:10%;border-left:3px solid var(--gold)}
+  .reading{white-space:pre-wrap;line-height:1.6;font-size:15px}
+  .legend{font-size:12px;color:var(--mut);display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+  .sw{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px}
+  .hidden{display:none}
+  .signature{position:fixed;right:18px;bottom:12px;font-family:"Brush Script MT","Segoe Script","Lucida Handwriting",cursive;font-style:italic;font-size:18px;color:var(--gold);opacity:.85;pointer-events:none;z-index:10}
+</style>
+</head>
+<body>
+<header>
+  <h1>AstraCore AI</h1><span>Carta natal de alta precisión · Motor astronómico, reglas y consultor IA</span>
+</header>
+
+<main>
+  <!-- AGENTE 4: FORMULARIO -->
+  <section class="card">
+    <h2>Datos de nacimiento</h2>
+    <label>Nombre</label>
+    <input id="name" placeholder="Tu nombre">
+    <label>Fecha de nacimiento</label>
+    <input id="date" type="date" value="1990-06-15">
+    <label>Hora local de nacimiento</label>
+    <input id="time" type="time" value="14:30">
+    <div class="row"><input type="checkbox" id="noTime"><span class="note" style="margin:0">No sé mi hora exacta (usa 12:00; ASC, MC y casas no se muestran)</span></div>
+    <label>Ciudad, país</label>
+    <div class="row"><input id="city" placeholder="Ej: Madrid, España"><button class="sec" id="geoBtn" style="margin:0;padding:10px" onclick="geocode()">Buscar</button></div>
+    <div class="row" style="margin-top:6px">
+      <div style="flex:1"><label>Latitud</label><input id="lat" type="number" step="0.0001" value="40.4168"></div>
+      <div style="flex:1"><label>Longitud</label><input id="lon" type="number" step="0.0001" value="-3.7038"></div>
+    </div>
+    <label>Zona horaria (UTC±h, incl. horario de verano)</label>
+    <input id="tz" type="number" step="0.25" value="2">
+    <p class="note">Tras buscar la ciudad, la zona se sugiere según la longitud; verifícala y ajusta con el horario de verano vigente en esa fecha.</p>
+    <button onclick="runChart()">Calcular carta natal</button>
+    <div class="warn" style="margin-top:14px">Motor offline: posiciones de Sol a Neptuno, Luna y Nodo Medio con efemérides de baja precisión (~0,1°–1,5°). Plutón, Quirón y casas Placidus requieren el backend con Swiss Ephemeris (ver nota final).</div>
+  </section>
+
+  <section>
+    <div class="tabs">
+      <button class="tab on" data-t="resumen" onclick="tab('resumen')">Resumen Integral</button>
+      <button class="tab" data-t="planetas" onclick="tab('planetas')">Planetas y Casas</button>
+      <button class="tab" data-t="aspectos" onclick="tab('aspectos')">Aspectos Clave</button>
+      <button class="tab" data-t="consultor" onclick="tab('consultor')">Consultor IA</button>
+    </div>
+
+    <div class="card">
+      <div id="status" class="note">Introduce tus datos y calcula tu carta.</div>
+
+      <div id="p-resumen" class="pane on">
+        <div class="wheelwrap" id="wheel"></div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--blue)"></i>Sextil / Trígono (armónico)</span>
+          <span><i class="sw" style="background:var(--red)"></i>Cuadratura / Oposición (tenso)</span>
+          <span><i class="sw" style="background:var(--gold)"></i>Conjunción</span>
+        </div>
+        <h2 style="margin-top:18px">Lectura personalizada</h2>
+        <div class="row">
+          <input id="gkey" type="password" placeholder="API key de Gemini (solo en memoria)">
+          <input id="gmodel" value="gemini-2.0-flash" style="max-width:200px">
+        </div>
+        <button onclick="interpret()">Generar interpretación con Gemini</button>
+        <div id="balance" class="note" style="margin-top:12px"></div>
+        <div id="reading" class="reading" style="margin-top:12px"></div>
+      </div>
+
+      <div id="p-planetas" class="pane">
+        <table id="tabPlanetas"></table>
+        <h2 style="margin-top:18px">Cúspides de casas (Igual, desde ASC)</h2>
+        <table id="tabCasas"></table>
+      </div>
+
+      <div id="p-aspectos" class="pane">
+        <table id="tabAspectos"></table>
+      </div>
+
+      <div id="p-consultor" class="pane">
+        <div class="chat" id="chat"><div class="msg a">Pregúntame sobre tu carta: por ejemplo, "¿Cómo se relaciona mi Luna con mi Ascendente?" o "¿Qué tensiones tiene mi Venus?".</div></div>
+        <div class="row" style="margin-top:10px">
+          <input id="q" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')ask()">
+          <button class="sec" style="margin:0" onclick="ask()">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="signature">by Diego Ferreyra</div>
+
+<script>
+/* =========================================================
+   AGENTE 1 · INGENIERO ASTRONÓMICO (cálculo)
+   Elementos orbitales de baja precisión (Schlyter/Paul "sunpos/planetpos").
+   ========================================================= */
+const RAD = Math.PI/180;
+const norm = x => ((x%360)+360)%360;
+const val = p => p[0] + p[1]*0; // placeholder (replaced below)
+const P = (p,d) => p[0] + p[1]*d;
+
+const ELEM = {
+  Mercurio:{N:[48.3313,3.24587e-5],i:[7.0047,5e-8],w:[29.1241,1.01444e-5],a:[0.387098,0],e:[0.205635,5.59e-10],M:[168.6562,4.0923344368]},
+  Venus:   {N:[76.6799,2.46590e-5],i:[3.3946,2.75e-8],w:[54.8910,1.38374e-5],a:[0.723330,0],e:[0.006773,-1.302e-9],M:[48.0052,1.6021302244]},
+  Marte:   {N:[49.5574,2.11081e-5],i:[1.8497,-1.78e-8],w:[286.5016,2.92961e-5],a:[1.523688,0],e:[0.093405,2.516e-9],M:[18.6021,0.5240207766]},
+  Júpiter: {N:[100.4542,2.76854e-5],i:[1.3030,-1.557e-7],w:[273.8777,1.64505e-5],a:[5.20256,0],e:[0.048498,4.469e-9],M:[19.8950,0.0830853001]},
+  Saturno: {N:[113.6634,2.38980e-5],i:[2.4886,-1.081e-7],w:[339.3939,2.97661e-5],a:[9.55475,0],e:[0.055546,-9.499e-9],M:[316.9670,0.0334442282]},
+  Urano:   {N:[74.0005,1.3978e-5],i:[0.7733,1.9e-8],w:[96.6612,3.0565e-5],a:[19.18171,-1.55e-8],e:[0.047318,7.45e-9],M:[142.5905,0.011725806]},
+  Neptuno: {N:[131.7806,3.0173e-5],i:[1.7700,-2.55e-7],w:[272.8461,-6.027e-6],a:[30.05826,3.313e-8],e:[0.008606,2.15e-9],M:[260.2471,0.005995147]}
+};
+const SUN_EL  = {w:[282.9404,4.70935e-5], e:[0.016709,-1.151e-9], M:[356.0470,0.9856002585]};
+const MOON_EL = {N:[125.1228,-0.0529538083], i:5.1454, w:[318.0634,0.1643573223], e:0.0549, M:[115.3654,13.0649929509]};
+
+function kepler(Mrad, e){
+  let E = Mrad + e*Math.sin(Mrad)*(1+e*Math.cos(Mrad));
+  for(let k=0;k<12;k++) E -= (E - e*Math.sin(E) - Mrad)/(1 - e*Math.cos(E));
+  return E;
+}
+
+function sunPos(d){
+  const M = norm(P(SUN_EL.M,d)), w = P(SUN_EL.w,d), e = P(SUN_EL.e,d);
+  const E = kepler(M*RAD, e);
+  const xv = Math.cos(E)-e, yv = Math.sqrt(1-e*e)*Math.sin(E);
+  const r = Math.hypot(xv,yv), v = Math.atan2(yv,xv)/RAD;
+  return {lon: norm(v+w), r, M, w};
+}
+
+function planetGeo(name, d, sun){
+  const el = ELEM[name];
+  const M = norm(P(el.M,d)), e = P(el.e,d), a = P(el.a,d);
+  const E = kepler(M*RAD, e);
+  const xv = a*(Math.cos(E)-e), yv = a*Math.sqrt(1-e*e)*Math.sin(E);
+  const r = Math.hypot(xv,yv), v = Math.atan2(yv,xv);
+  const N = P(el.N,d)*RAD, i = P(el.i,d)*RAD, w = P(el.w,d)*RAD, vw = v+w;
+  const xh = r*(Math.cos(N)*Math.cos(vw) - Math.sin(N)*Math.sin(vw)*Math.cos(i));
+  const yh = r*(Math.sin(N)*Math.cos(vw) + Math.cos(N)*Math.sin(vw)*Math.cos(i));
+  const zh = r*Math.sin(vw)*Math.sin(i);
+  const Ls = sun.lon*RAD, rs = sun.r;
+  const xg = xh + rs*Math.cos(Ls), yg = yh + rs*Math.sin(Ls);
+  return {lon: norm(Math.atan2(yg,xg)/RAD), lat: Math.atan2(zh, Math.hypot(xg,yg))/RAD};
+}
+
+function moonPos(d, sun){
+  const N = norm(P(MOON_EL.N,d)), w = norm(P(MOON_EL.w,d)), M = norm(P(MOON_EL.M,d));
+  const e = MOON_EL.e, i = MOON_EL.i*RAD;
+  const E = kepler(M*RAD, e);
+  const xv = Math.cos(E)-e, yv = Math.sqrt(1-e*e)*Math.sin(E);
+  const v = Math.atan2(yv,xv);
+  const vw = v + w*RAD;
+  let lon = N + Math.atan2(Math.sin(vw)*Math.cos(i), Math.cos(vw))/RAD;
+  const lat = Math.asin(Math.sin(vw)*Math.sin(i))/RAD;
+  // Perturbaciones principales (evección, variación, año anómalo)
+  const Ms = sun.M, Ls = norm(Ms + sun.w), Lm = N + w + M, D = Lm - Ls, F = Lm - N;
+  const s = x => Math.sin(x*RAD);
+  lon += -1.274*s(M-2*D) + 0.658*s(2*D) - 0.186*s(Ms) - 0.059*s(2*M-2*D)
+       - 0.057*s(M-2*D+Ms) + 0.053*s(M+2*D) + 0.046*s(2*D-Ms) + 0.041*s(M-Ms)
+       - 0.035*s(D) - 0.031*s(M+Ms) - 0.015*s(2*F-2*D) + 0.011*s(M-4*D);
+  return {lon: norm(lon), lat};
+}
+
+function computeChart(inp){
+  // Hora local -> UTC (offset manual, incluye DST)
+  const [y,mo,dd] = inp.date.split('-').map(Number);
+  const [hh,mm] = inp.time.split(':').map(Number);
+  const utcMs = Date.UTC(y,mo-1,dd,hh,mm) - inp.tz*3600000;
+  const jd = utcMs/86400000 + 2440587.5;
+  const d = jd - 2451543.5;
+  const sun = sunPos(d);
+  const B = {};
+  B['Sol'] = {lon: sun.lon, lat:0, r:sun.r};
+  B['Luna'] = moonPos(d, sun);
+  for(const n of Object.keys(ELEM)) B[n] = planetGeo(n, d, sun);
+  // Retrogradación: movimiento aparente en 1 día
+  const retro = {};
+  for(const n of Object.keys(ELEM)){
+    const l1 = planetGeo(n, d+1, sunPos(d+1)).lon;
+    retro[n] = norm(l1 - B[n].lon + 180) - 180 < 0;
+  }
+  B['Nodo Norte'] = {lon: norm(P(MOON_EL.N,d)), lat:0};
+  const nn = B['Nodo Norte'].lon;
+  B['Nodo Sur'] = {lon: norm(nn+180), lat:0};
+
+  // Ángulos
+  const eps = (23.4393 - 3.563e-7*d)*RAD;
+  const gmst = norm(280.46061837 + 360.98564736629*(jd-2451545));
+  let angles = null;
+  if(inp.timeKnown){
+    const lst = norm(gmst + inp.lon)*RAD, phi = inp.lat*RAD;
+    const asc = norm(Math.atan2(Math.cos(lst), -(Math.sin(lst)*Math.cos(eps) + Math.tan(phi)*Math.sin(eps)))/RAD);
+    const mc  = norm(Math.atan2(Math.sin(lst), Math.cos(lst)*Math.cos(eps))/RAD);
+    angles = {ASC: asc, MC: mc};
+  }
+  return {bodies:B, retro, angles, utc: new Date(utcMs).toISOString(), d, inp};
+}
+
+function signOf(lon){ return {i: Math.floor(norm(lon)/30), deg: norm(lon)%30}; }
+function fmtDeg(lon){ const s=signOf(lon); const dg=Math.floor(s.deg), mn=Math.floor((s.deg-dg)*60); return `${dg}° ${String(mn).padStart(2,'0')}' ${SIGNS[s.i]}`; }
+
+/* =========================================================
+   AGENTE 2 · ARQUITECTO ASTROLÓGICO (reglas y patrones)
+   ========================================================= */
+const SIGNS = ['Aries','Tauro','Géminis','Cáncer','Leo','Virgo','Libra','Escorpio','Sagitario','Capricornio','Acuario','Piscis'];
+const SG = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+const ELEMS = ['Fuego','Tierra','Aire','Agua'];
+const MODS = ['Cardinal','Fijo','Mutable'];
+const GLYPH = {'Sol':'☉','Luna':'☽','Mercurio':'☿','Venus':'♀','Marte':'♂','Júpiter':'♃','Saturno':'♄','Urano':'♅','Neptuno':'♆','Nodo Norte':'☊','Nodo Sur':'☋','ASC':'AC','MC':'MC'};
+const ORB_OF = {'Sol':8,'Luna':8,'Mercurio':6,'Venus':6,'Marte':6,'Júpiter':6,'Saturno':6,'Urano':4,'Neptuno':4};
+const DIGNITY = { // domicilio, exaltación, detrimento, caída (índices de signo)
+  Sol:{dom:[4],exa:[0],det:[10],caida:[6]}, Luna:{dom:[3],exa:[1],det:[9],caida:[7]},
+  Mercurio:{dom:[2,5],exa:[5],det:[8,11],caida:[11]}, Venus:{dom:[1,6],exa:[11],det:[7,0],caida:[5]},
+  Marte:{dom:[0,7],exa:[9],det:[6,1],caida:[3]}, Júpiter:{dom:[8,11],exa:[3],det:[2,5],caida:[9]},
+  Saturno:{dom:[9,10],exa:[6],det:[3,4],caida:[0]}, Urano:{dom:[10],exa:[7],det:[4],caida:[1]},
+  Neptuno:{dom:[11],exa:[3],det:[5],caida:[9]}
+};
+const RULER = ['Marte','Venus','Mercurio','Luna','Sol','Mercurio','Venus','Marte','Júpiter','Saturno','Saturno','Júpiter'];
+const ASPECTS = [{n:'Conjunción',a:0,t:'gold'},{n:'Sextil',a:60,t:'blue'},{n:'Cuadratura',a:90,t:'red'},{n:'Trígono',a:120,t:'blue'},{n:'Oposición',a:180,t:'red'}];
+
+function buildSchema(chart){
+  const {bodies:B, retro, angles} = chart;
+  const hasAsc = !!angles;
+  const houseOf = lon => hasAsc ? Math.floor(norm(lon - angles.ASC)/30)+1 : null;
+  const planets = Object.keys(B).filter(k=>!k.startsWith('Nodo')).map(k=>{
+    const s = signOf(B[k].lon);
+    const dig = DIGNITY[k] ? (DIGNITY[k].dom.includes(s.i)?'domicilio':DIGNITY[k].exa.includes(s.i)?'exaltación':DIGNITY[k].det.includes(s.i)?'detrimento':DIGNITY[k].caida.includes(s.i)?'caída':'peregrino') : '';
+    return {name:k, lon:B[k].lon, sign:SIGNS[s.i], signIdx:s.i, deg:+s.deg.toFixed(2), element:ELEMS[s.i%4], modality:MODS[s.i%3], house:houseOf(B[k].lon), retrograde: !!retro[k], dignity: dig};
+  });
+  const aspects = [];
+  const pts = planets.filter(p=>ORB_OF[p.name]);
+  for(let a=0;a<pts.length;a++) for(let b=a+1;b<pts.length;b++){
+    const p=pts[a], q=pts[b];
+    let diff = Math.abs(norm(p.lon-q.lon)); if(diff>180) diff=360-diff;
+    const limit = (ORB_OF[p.name]+ORB_OF[q.name])/2;
+    for(const asp of ASPECTS){
+      const orb = Math.abs(diff-asp.a);
+      if(orb<=limit) aspects.push({p1:p.name,p2:q.name,type:asp.n,color:asp.t,orb:+orb.toFixed(2),applying:null});
+    }
+  }
+  const count = {Fuego:0,Tierra:0,Aire:0,Agua:0}, mods={Cardinal:0,Fijo:0,Mutable:0};
+  planets.filter(p=>p.name!=='Nodo Norte').forEach(p=>{count[p.element]++; mods[p.modality]++;});
+  // Stellium: 3+ planetas en 8°
+  const sorted = [...planets].sort((a,b)=>a.lon-b.lon);
+  const stelliums=[];
+  for(let i=0;i<sorted.length;i++){
+    const grp=[sorted[i]];
+    for(let j=i+1;j<sorted.length;j++){ if(norm(sorted[j].lon-sorted[i].lon)<=8) grp.push(sorted[j]); else break; }
+    if(grp.length>=3){ stelliums.push(grp.map(g=>g.name)); break; }
+  }
+  const ascRuler = hasAsc ? RULER[Math.floor(angles.ASC/30)] : null;
+  return {planets, aspects, elements:count, modalities:mods, stelliums, hasAsc,
+          asc: hasAsc?{lon:angles.ASC, sign:SIGNS[Math.floor(angles.ASC/30)], ruler:ascRuler}:null,
+          mc: hasAsc?{lon:angles.MC, sign:SIGNS[Math.floor(angles.MC/30)]}:null,
+          retrogrades: planets.filter(p=>p.retrograde).map(p=>p.name)};
+}
+
+/* =========================================================
+   AGENTE 4 · RUEDA SVG Y TABLAS
+   ========================================================= */
+const CX=300, CY=300;
+function pt(lon, r, asc){ const rad = (180 + (lon - asc))*RAD; return [CX + r*Math.cos(rad), CY - r*Math.sin(rad)]; }
+
+function drawWheel(chart, schema){
+  const hasAsc = !!chart.angles, asc = hasAsc ? chart.angles.ASC : 0;
+  let s = `<svg viewBox="0 0 600 600" width="100%" style="max-width:600px">
+  <defs><radialGradient id="g" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a1446"/><stop offset="100%" stop-color="#0a0a22"/></radialGradient></defs>
+  <circle cx="${CX}" cy="${CY}" r="292" fill="url(#g)" stroke="#d4af37" stroke-width="1.5"/>
+  <circle cx="${CX}" cy="${CY}" r="240" fill="none" stroke="#d4af37" stroke-width="1"/>
+  <circle cx="${CX}" cy="${CY}" r="172" fill="none" stroke="#6a5acd" stroke-width="1"/>
+  <circle cx="${CX}" cy="${CY}" r="120" fill="none" stroke="#2b2b66" stroke-width="0.8"/>`;
+  // signos
+  for(let i=0;i<12;i++){
+    const l0 = i*30;
+    const [x1,y1]=pt(l0,292,asc), [x2,y2]=pt(l0,240,asc);
+    s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#d4af37" stroke-width="0.8"/>`;
+    const [gx,gy]=pt(l0+15,266,asc);
+    s+=`<text x="${gx}" y="${gy+7}" font-size="22" fill="#d4af37" text-anchor="middle">${SG[i]}</text>`;
+  }
+  // casas (igual desde ASC)
+  if(hasAsc){
+    for(let h=0;h<12;h++){
+      const l = asc + h*30;
+      const [x1,y1]=pt(l,172,asc), [x2,y2]=pt(l,120,asc);
+      const major = h%3===0;
+      s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${major?'#8c7ae6':'#3a3a7a'}" stroke-width="${major?1.6:0.8}"/>`;
+      const [nx,ny]=pt(l+15,140,asc);
+      s+=`<text x="${nx}" y="${ny+4}" font-size="12" fill="#9a98b8" text-anchor="middle">${h+1}</text>`;
+    }
+  }
+  // aspectos
+  const posOf = {};
+  schema.planets.forEach(p=>posOf[p.name]=p.lon);
+  for(const a of schema.aspects){
+    const [x1,y1]=pt(posOf[a.p1],115,asc), [x2,y2]=pt(posOf[a.p2],115,asc);
+    const col = a.color==='gold'?'#d4af37':a.color==='blue'?'#4fa3ff':'#ff5c5c';
+    s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.1" opacity="0.65"><title>${a.p1} ${a.type} ${a.p2} (orbe ${a.orb}°)</title></line>`;
+  }
+  // planetas con separación anti-colisión
+  const items = schema.planets.map(p=>({n:p.name,lon:p.lon,r:200}));
+  if(hasAsc) items.push({n:'ASC',lon:asc,r:0,fixed:true});
+  items.sort((a,b)=>a.lon-b.lon);
+  for(let k=1;k<items.length;k++){
+    const prev=items[k-1], cur=items[k];
+    const gap = norm(cur.lon-prev.lon);
+    if(gap<7 && cur.n!=='ASC' && prev.n!=='ASC'){ cur.r = prev.r===200?184:200; }
+  }
+  for(const it of items){
+    if(!GLYPH[it.n]) continue;
+    const [gx,gy]=pt(it.lon,it.r,asc);
+    const [tx,ty]=pt(it.lon,236,asc);
+    if(it.n!=='ASC') s+=`<line x1="${gx}" y1="${gy}" x2="${tx}" y2="${ty}" stroke="#4a4a8a" stroke-width="0.6"/>`;
+    const txt = GLYPH[it.n]||it.n;
+    s+=`<text x="${gx}" y="${gy+6}" font-size="${it.n.length>3?13:19}" fill="#fff" text-anchor="middle">${txt}</text>`;
+  }
+  if(hasAsc){
+    const [ax,ay]=pt(asc,292,asc); const [bx,by]=pt(asc,0,asc);
+    s+=`<text x="${CX-270}" y="${CY+4}" font-size="12" fill="#d4af37" text-anchor="start">ASC ${fmtDeg(asc).split(' ').slice(0,2).join(' ')}</text>`;
+    s+=`<text x="${CX}" y="${CY-262}" font-size="12" fill="#d4af37" text-anchor="middle">MC ${fmtDeg(chart.angles.MC).split(' ').slice(0,2).join(' ')}</text>`;
+  } else {
+    s+=`<text x="${CX}" y="${CY}" font-size="12" fill="#ffd58a" text-anchor="middle">Hora desconocida: sin ASC/casas</text>`;
+  }
+  s+='</svg>';
+  document.getElementById('wheel').innerHTML = s;
+}
+
+function renderTables(chart, schema){
+  let h = `<tr><th>Cuerpo</th><th>Posición</th><th>Lat.</th><th>Casa</th><th>Dignidad</th><th></th></tr>`;
+  for(const p of schema.planets){
+    h += `<tr><td>${GLYPH[p.name]||''} ${p.name}</td><td>${fmtDeg(p.lon)}</td><td>${chart.bodies[p.name].lat.toFixed(2)}°</td><td>${p.house??'—'}</td><td>${p.dignity}</td><td>${p.retrograde?'℞':''}</td></tr>`;
+  }
+  h += `<tr><td>☊ Nodo Norte</td><td>${fmtDeg(chart.bodies['Nodo Norte'].lon)}</td><td>—</td><td>${schema.hasAsc?Math.floor(norm(chart.bodies['Nodo Norte'].lon-chart.angles.ASC)/30)+1:'—'}</td><td></td><td></td></tr>`;
+  if(schema.hasAsc){
+    h += `<tr><td>AC Ascendente</td><td>${fmtDeg(schema.asc.lon)}</td><td>—</td><td>1</td><td></td><td></td></tr>`;
+    h += `<tr><td>MC Medio Cielo</td><td>${fmtDeg(schema.mc.lon)}</td><td>—</td><td>10</td><td></td><td></td></tr>`;
+  }
+  document.getElementById('tabPlanetas').innerHTML = h;
+  let c = `<tr><th>Casa</th><th>Cúspide (Igual)</th></tr>`;
+  if(schema.hasAsc) for(let k=0;k<12;k++) c += `<tr><td>${k+1}</td><td>${fmtDeg(chart.angles.ASC+30*k)}</td></tr>`;
+  else c += `<tr><td colspan=2>No disponible sin hora de nacimiento.</td></tr>`;
+  document.getElementById('tabCasas').innerHTML = c;
+  let a = `<tr><th>Planeta 1</th><th>Aspecto</th><th>Planeta 2</th><th>Orbe</th></tr>`;
+  const key = schema.aspects.filter(x=>x.color!=='x').sort((x,y)=>x.orb-y.orb);
+  for(const x of key){
+    const col = x.color==='gold'?'#d4af37':x.color==='blue'?'#4fa3ff':'#ff5c5c';
+    a += `<tr><td>${x.p1}</td><td style="color:${col}">${x.type}</td><td>${x.p2}</td><td>${x.orb}°</td></tr>`;
+  }
+  if(!schema.aspects.length) a += `<tr><td colspan=4>Sin aspectos mayores dentro de orbe.</td></tr>`;
+  document.getElementById('tabAspectos').innerHTML = a;
+}
+
+/* =========================================================
+   Estado y control
+   ========================================================= */
+let CURRENT = null, SCHEMA = null, HISTORY = [];
+
+function tab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on', p.id==='p-'+t));
+}
+
+async function geocode(){
+  const q = document.getElementById('city').value.trim();
+  if(!q) return;
+  const btn = document.getElementById('geoBtn'); btn.disabled=true;
+  try{
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q));
+    const j = await r.json();
+    if(j.length){
+      document.getElementById('lat').value = (+j[0].lat).toFixed(4);
+      document.getElementById('lon').value = (+j[0].lon).toFixed(4);
+      document.getElementById('tz').value = Math.round(+j[0].lon/15*4)/4;
+      setStatus('Ubicación resuelta: '+j[0].display_name+'. Verifica la zona horaria.');
+    } else setStatus('No se encontró la ciudad; introduce latitud y longitud manualmente.');
+  }catch(e){ setStatus('Geocodificación no disponible; introduce coordenadas manualmente.'); }
+  btn.disabled=false;
+}
+
+function setStatus(t){ document.getElementById('status').textContent = t; }
+
+function runChart(){
+  const inp = {
+    name: document.getElementById('name').value || 'Sin nombre',
+    date: document.getElementById('date').value,
+    time: document.getElementById('noTime').checked ? '12:00' : document.getElementById('time').value,
+    timeKnown: !document.getElementById('noTime').checked,
+    lat: +document.getElementById('lat').value,
+    lon: +document.getElementById('lon').value,
+    tz: +document.getElementById('tz').value,
+    city: document.getElementById('city').value
+  };
+  if(!inp.date){ setStatus('Introduce la fecha de nacimiento.'); return; }
+  CURRENT = computeChart(inp);
+  SCHEMA = buildSchema(CURRENT);
+  drawWheel(CURRENT, SCHEMA);
+  renderTables(CURRENT, SCHEMA);
+  HISTORY = [];
+  document.getElementById('chat').innerHTML = '<div class="msg a">Carta de '+inp.name+' lista. Pregúntame sobre ella.</div>';
+  const bal = SCHEMA.elements, mod = SCHEMA.modalities;
+  document.getElementById('balance').textContent = `Elementos: Fuego ${bal.Fuego} · Tierra ${bal.Tierra} · Aire ${bal.Aire} · Agua ${bal.Agua} | Modalidades: Cardinal ${mod.Cardinal} · Fijo ${mod.Fijo} · Mutable ${mod.Mutable}` + (SCHEMA.stelliums.length? ' | Stellium: '+SCHEMA.stelliums[0].join(', '):'') + (SCHEMA.retrogrades.length? ' | Retrógrados: '+SCHEMA.retrogrades.join(', '):'');
+  document.getElementById('reading').textContent = localReading();
+  setStatus(`Carta calculada (UTC ${CURRENT.utc}).`);
+  tab('resumen');
+}
+
+function localReading(){
+  if(!CURRENT) return '';
+  const g = n => SCHEMA.planets.find(p=>p.name===n);
+  const sun=g('Sol'), moon=g('Luna'), venus=g('Venus'), mars=g('Marte'), sat=g('Saturno');
+  let t = `TRÍADA PRIMORDIAL\nSol en ${sun.sign} (casa ${sun.house??'—'}): núcleo de identidad y voluntad.\nLuna en ${moon.sign}: mundo emocional y necesidades de seguridad.`;
+  if(SCHEMA.asc) t += `\nAscendente en ${SCHEMA.asc.sign}, regido por ${SCHEMA.asc.ruler}: forma en que te presentas y actúas.`;
+  t += `\n\nDINÁMICA AFECTIVA\nVenus en ${venus.sign}; Marte en ${mars.sign}.\n\nPROPÓSITO\nSaturno en ${sat.sign} (casa ${sat.house??'—'}): disciplina y aprendizaje a largo plazo.\n\n(Añade tu clave de Gemini para una lectura narrativa completa.)`;
+  return t;
+}
+
+function chartContext(){
+  return JSON.stringify({
+    persona: CURRENT.inp.name, utc: CURRENT.utc, lugar:{lat:CURRENT.inp.lat, lon:CURRENT.inp.lon},
+    hora_conocida: CURRENT.inp.timeKnown, sistema_casas: 'Igual desde ASC (Placidus pendiente)',
+    angulos: CURRENT.angles,
+    planetas: SCHEMA.planets.map(p=>({nombre:p.name, signo:p.sign, grado:p.deg, casa:p.house, elemento:p.element, modalidad:p.modality, retrogrado:p.retrograde, dignidad:p.dignity})),
+    aspectos: SCHEMA.aspects, elementos: SCHEMA.elements, modalidades: SCHEMA.modalities,
+    stellium: SCHEMA.stelliums, asc_regente: SCHEMA.asc?.ruler
+  });
+}
+
+const SYSTEM = `Eres el Astrólogo Consultor de AstraCore AI. Interpretas SOLO la carta JSON proporcionada.
+Reglas: no inventes grados ni aspectos; no seas fatalista ni uses clichés de revista; explica el porqué técnico (ej. "Tu necesidad de control nace de una Luna en Capricornio en cuadratura a Saturno..."); sugiere caminos de evolución y acción. Responde en español, con tono empático y claro.
+Si la hora no es conocida, indícalo y no hables de Ascendente ni casas.`;
+
+async function callGemini(contents, system){
+  const key = document.getElementById('gkey').value.trim();
+  const model = document.getElementById('gmodel').value.trim() || 'gemini-2.0-flash';
+  if(!key) throw new Error('NOKEY');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({systemInstruction:{parts:[{text:system}]}, contents})});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const j = await res.json();
+  return j.candidates?.[0]?.content?.parts?.map(p=>p.text).join('') || 'Sin respuesta.';
+}
+
+async function interpret(){
+  if(!CURRENT){ setStatus('Primero calcula una carta.'); return; }
+  const el = document.getElementById('reading');
+  el.textContent = 'Generando lectura...';
+  const prompt = `Carta natal (JSON):\n${chartContext()}\n\nRedacta la lectura en cuatro partes con estos títulos:
+1) Tríada Primordial (Sol, Luna, Ascendente y su regente)
+2) Dinámica Relacional y Afectiva (Venus, Marte, Casa 7)
+3) Propósito y Vocación (Medio Cielo, Saturno, Nodos)
+4) Síntesis de Tránsitos Actuales (indica que los tránsitos no se calculan en este motor y ofrece una lectura de tendencias generales sin afirmar fechas).
+Explica el porqué técnico de cada punto.`;
+  try{
+    el.textContent = await callGemini([{role:'user',parts:[{text:prompt}]}], SYSTEM);
+  }catch(e){
+    el.textContent = (e.message==='NOKEY' ? 'Introduce tu API key de Gemini para la lectura completa.\n\n' : 'Error con Gemini ('+e.message+').\n\n') + localReading();
+  }
+}
+
+async function ask(){
+  const input = document.getElementById('q');
+  const text = input.value.trim();
+  if(!text || !CURRENT) return;
+  input.value='';
+  const chat = document.getElementById('chat');
+  chat.insertAdjacentHTML('beforeend', `<div class="msg u">${escapeHtml(text)}</div>`);
+  HISTORY.push({role:'user', text});
+  const thinking = document.createElement('div'); thinking.className='msg a'; thinking.textContent='...';
+  chat.appendChild(thinking); chat.scrollTop=chat.scrollHeight;
+  const contents = [{role:'user',parts:[{text:'Carta de referencia:\n'+chartContext()}]},
+                    {role:'model',parts:[{text:'Entendido. Responderé basándome en esta carta.'}]}];
+  HISTORY.forEach(m=>contents.push({role:m.role==='user'?'user':'model',parts:[{text:m.text}]}));
+  let reply;
+  try{ reply = await callGemini(contents, SYSTEM); }
+  catch(e){ reply = e.message==='NOKEY' ? 'Introduce tu API key de Gemini en la pestaña Resumen para activar el consultor.' : 'Error al consultar Gemini ('+e.message+').'; }
+  HISTORY.push({role:'model', text:reply});
+  thinking.textContent = reply;
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Carta inicial de ejemplo
+window.addEventListener('DOMContentLoaded', ()=>{ runChart(); });
+
+// Registro del service worker (necesario para que la app sea instalable)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(err=>console.error('SW no registrado:', err));
+  });
+}
+</script>
+</body>
+</html>
